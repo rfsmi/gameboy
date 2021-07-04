@@ -238,6 +238,8 @@ impl CPU {
         this
     }
 
+    fn register_instructions() {}
+
     fn execute(&mut self) {
         let pc = self.get_u16(Loc::RegPC);
         let offset: i8 = match self.get_u8(Loc::Mem(pc)) {
