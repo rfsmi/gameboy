@@ -1,130 +1,14 @@
 mod cpu;
 mod instruction;
-mod register;
+mod storage;
 
 use std::{cell::RefCell, rc::Rc};
-
-enum Loc {
-    RegA,
-    RegB,
-    RegC,
-    RegD,
-    RegE,
-    RegH,
-    RegL,
-    RegAF,
-    RegBC,
-    RegDE,
-    RegHL,
-    RegSP,
-    RegPC,
-    Flags,
-    RegIME,
-    Mem(u16),
-}
 
 enum Flags {
     Zero = 4,
     HalfCarry,
     Subtraction,
     Carry,
-}
-
-enum StorageAccess {
-    R,
-    W,
-    RW,
-}
-
-enum StorageDataSize {
-    Eight,
-    Sixteen,
-    Any,
-}
-
-struct Storage {
-    access: StorageAccess,
-    data_size: StorageDataSize,
-    data: Rc<RefCell<Vec<u8>>>,
-}
-
-impl Storage {
-    fn new(size: usize, access: StorageAccess, data_size: StorageDataSize) -> Self {
-        Self {
-            access,
-            data_size,
-            data: Rc::new(RefCell::new(vec![0; size])),
-        }
-    }
-
-    fn from_data(
-        data: Rc<RefCell<Vec<u8>>>,
-        access: StorageAccess,
-        data_size: StorageDataSize,
-    ) -> Self {
-        Self {
-            access,
-            data_size,
-            data,
-        }
-    }
-
-    fn write_8(&mut self, address: u16, value: u8) {
-        if let StorageAccess::R = self.access {
-            panic!("can't write to read-only storage");
-        }
-        if let StorageDataSize::Sixteen = self.data_size {
-            panic!("can't write 8b to 16b storage");
-        }
-        let data = &mut (*self.data).borrow_mut()[address as usize..];
-        if data.len() < 1 {
-            panic!("8b write oob");
-        }
-        data[0] = value;
-    }
-
-    fn write_16(&mut self, address: u16, value: u16) {
-        if let StorageAccess::R = self.access {
-            panic!("can't write to read-only storage");
-        }
-        if let StorageDataSize::Eight = self.data_size {
-            panic!("can't write 16b to 8b storage");
-        }
-        let data = &mut (*self.data).borrow_mut()[address as usize..];
-        if data.len() < 2 {
-            panic!("16b write oob");
-        }
-        data[0] = value as u8;
-        data[1] = (value >> 8) as u8;
-    }
-
-    fn read_8(&self, address: u16) -> u8 {
-        if let StorageAccess::W = self.access {
-            panic!("can't read from write-only storage");
-        }
-        if let StorageDataSize::Sixteen = self.data_size {
-            panic!("can't read 8b from 16b storage");
-        }
-        let data = &(*self.data).borrow()[address as usize..];
-        if data.len() < 1 {
-            panic!("8b read oob");
-        }
-        data[0]
-    }
-
-    fn read_16(&self, address: u16) -> u16 {
-        if let StorageAccess::W = self.access {
-            panic!("can't read from write-only storage");
-        }
-        if let StorageDataSize::Eight = self.data_size {
-            panic!("can't read 16b from 8b storage");
-        }
-        let data = &(*self.data).borrow()[address as usize..];
-        if data.len() < 2 {
-            panic!("16b read oob");
-        }
-        (data[0] as u16) | ((data[1] as u16) << 8)
-    }
 }
 
 struct CPU {
@@ -388,8 +272,6 @@ impl CPU {
 }
 
 fn main() {
-    let mut cpu = CPU::new("rom/Pokemon Red.gb");
-    loop {
-        cpu.execute();
-    }
+    let rom = std::fs::read("rom/Pokemon Red.gb").expect("failed to load file");
+    cpu::CPU::new(rom).run();
 }
